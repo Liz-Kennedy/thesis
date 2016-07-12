@@ -24,7 +24,8 @@ def load_skipgenes(fname):
 		for line in infile:
 			genes.add(line.strip())
 	return genes
-DROPLINES_PATH = "/gpfs/pace1/home/het1/emkenn2-emory/data/MESA/infiles/tossIDXs/"
+#DROPLINES_PATH = "/gpfs/pace1/home/het1/emkenn2-emory/data/MESA/infiles/tossIDXs/"
+DROPLINES_PATH = "/home/ekennedy/Projects/Thesis/input/tossIDXs/"
 print "Directory that contains row indicies to drop"
 print "DROPLINES_PATH = %s\n" % (DROPLINES_PATH)
 check_dir(DROPLINES_PATH)
@@ -33,36 +34,43 @@ START_ID = 18001
 STOP_ID = 19445
 
 
-PROBE_LOCATIONS_FILENAME = "/gpfs/pace1/home/het1/emkenn2-emory/data/MESA/infiles/MESA_geneLoc_4_pylmm.txt"
+#PROBE_LOCATIONS_FILENAME = "/gpfs/pace1/home/het1/emkenn2-emory/data/MESA/infiles/MESA_geneLoc_4_pylmm.txt"
+PROBE_LOCATIONS_FILENAME = "/home/ekennedy/Projects/Thesis/input/GTP_geneLoc_4_pylmm.txt"
 print "Probe locations filename"
 print "PROBE_LOCATIONS_FILENAME = %s\n" % (PROBE_LOCATIONS_FILENAME)
 check_file(PROBE_LOCATIONS_FILENAME)
 
-CPG_FILENAME = "/gpfs/pace1/home/het1/emkenn2-emory/data/MESA/infiles/MESA_CpGLoc_4_pylmm.txt"
+#CPG_FILENAME = "/gpfs/pace1/home/het1/emkenn2-emory/data/MESA/infiles/MESA_CpGLoc_4_pylmm.txt"
+CPG_FILENAME = "/home/ekennedy/Projects/Thesis/input/GTP_CpGLoc_4_pylmm.txt"
 print "Cpg locations filename"
 print "CPG_FILENAME = %s\n" % (CPG_FILENAME)
 check_file(CPG_FILENAME)
 
-ROWNAME_PATH = "/gpfs/pace1/home/het1/emkenn2-emory/data/MESA/infiles/MESA_exp_rownames.txt"
+#ROWNAME_PATH = "/gpfs/pace1/home/het1/emkenn2-emory/data/MESA/infiles/MESA_exp_rownames.txt"
+ROWNAME_PATH = "/home/ekennedy/Projects/Thesis/input/"
 print "'File or directory containing rownames for genes(?)"
 print "ROWNAMES_PATH = %s\n" % (ROWNAME_PATH)
 
-PYLMM_PATH = "/gpfs/pace1/home/het1/emkenn2-emory/data/MESA/outfiles/newnames/"
+#PYLMM_PATH = "/gpfs/pace1/home/het1/emkenn2-emory/data/MESA/outfiles/newnames/"
+PYLMM_PATH = "/home/ekennedy/Projects/Thesis/output/"
 print "Directory containing outputs from pylmm"
 print "PYLMM_PATH = %s\n" % (PYLMM_PATH)
 check_dir(PYLMM_PATH)
 
-CPG_COUNTS_FILE = "/gpfs/pace1/home/het1/emkenn2-emory/data/MESA/outfiles/MESA_pylmm_summary_report_nCGI_neg11_"+ str(STOP_ID) + ".csv"
+#CPG_COUNTS_FILE = "/gpfs/pace1/home/het1/emkenn2-emory/data/MESA/outfiles/MESA_pylmm_summary_report_nCGI_neg11_"+ str(STOP_ID) + ".csv"
+CPG_COUNTS_FILE = "/home/ekennedy/Projects/Thesis/output/GTP_pylmm_summary_report" + ".csv"
 print "Pylmm CPG summary file"
 print "CPG_COUNTS_FILE = %s\n" % (CPG_COUNTS_FILE)
 check_file(CPG_COUNTS_FILE + str(STOP_ID) + ".csv",False)
 
-CLOSER_GENES_FILE = "/gpfs/pace1/home/het1/emkenn2-emory/data/MESA/outfiles/MESA_closer_nCGI_neg11_" + str(STOP_ID) + ".csv"
+#CLOSER_GENES_FILE = "/gpfs/pace1/home/het1/emkenn2-emory/data/MESA/outfiles/MESA_closer_nCGI_neg11_" + str(STOP_ID) + ".csv"
+CLOSER_GENES_FILE = "/home/ekennedy/Projects/Thesis/output/GTP_closer" + ".csv"
 print "File containing genes which are closer to the cpg than the pylmm significant gene"
 print "CLOSER_GENES_FILE = %s\n" % (CLOSER_GENES_FILE)
 check_file(CLOSER_GENES_FILE + str(STOP_ID) + ".csv",False)
 
-GENE_REF_FILE = "/gpfs/pace1/home/het1/emkenn2-emory/data/MESA/infiles/AVGrefSeq.txt"
+#GENE_REF_FILE = "/gpfs/pace1/home/het1/emkenn2-emory/data/MESA/infiles/AVGrefSeq.txt"
+GENE_REF_FILE = "/home/ekennedy/Projects/Thesis/input/AVGrefSeq.txt"
 print "Gene reference file"
 print "GENE_REF_FILE = %s\n" % (GENE_REF_FILE)
 check_file(GENE_REF_FILE)
@@ -74,7 +82,8 @@ print "THRESHOLD = %d\n" % (THRESHOLD)
 WEAK_THRESHOLD = pow(10,-5)
 print "WEAK THRESHOLD = %d\n" % (WEAK_THRESHOLD)
 
-SKIP_GENES = "/gpfs/pace1/home/het1/emkenn2-emory/data/MESA/infiles/MESA_skip_genes_nCGI.txt"
+#SKIP_GENES = "/gpfs/pace1/home/het1/emkenn2-emory/data/MESA/infiles/MESA_skip_genes_nCGI.txt"
+SKIP_GENES = None
 if SKIP_GENES is not None:
 	print "File containing expression probe file names to skip"
 	print "SKIP_GENES = %s\n" % (SKIP_GENES)
@@ -85,7 +94,7 @@ else:
 
 #set the appropriate naming convetion to determine how to iterate
 #through the files
-NAMING_CONVENTION = "MESA"
+NAMING_CONVENTION = "GTP"
 if NAMING_CONVENTION not in ["GTP","MESA"]:
 	print "Invalid naming convention. Please use either MESA, or GTP."
 	sys.exit(-1)
@@ -167,7 +176,7 @@ def loadprobelocs():
                 lineno = 0
                 for line in infile:
                         lineno += 1
-                        nm,chrm,start,stop,strand = line.strip().split("\t")#this was a MESA only change... :(
+                        nm,chrm,start,stop,strand = line.strip().split("\t")
                         #if the strand is negative we need to swap the start and stop locations
                         if strand == "-":
                                 tmp = stop

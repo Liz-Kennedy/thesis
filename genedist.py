@@ -1,6 +1,6 @@
 import sqlite3
 
-DATASET="MESA"# or "GTP"
+DATASET="GTP"# or "MESA"
 
 #call the appropriate function to calculate the distance between the position and the cpg strand
 #based on the direction of the strand (+ or -)
@@ -44,10 +44,7 @@ def load_file(fname):
 	with open(fname) as infile:
 		infile.readline() #drop the header
 		for line in infile:
-			if DATASET == "MESA":
-				gene,chrm,start,end,strand = line.strip().split("\t")[:5]
-			elif DATASET == "GTP":
-				gene,chrm,strand,start,end = line.strip().split("\t")[:5]
+			gene,chrm,strand,start,end = line.strip().split("\t")[:5]
 			if start == "NA" or end == "NA" or chrm == "NA":
                                 continue
 			start = int(start)
