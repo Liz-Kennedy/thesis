@@ -192,9 +192,9 @@ def loadcpglocs():
 #cpgpos = the position of the cpg position
 #loc_type = How close the genes in the gene list are relative to the significant gene to the cpg. BETWEEN,TSS, or CLOSER
 #gene_list = list of gnees that are closer to the cpg than the significant gene
-def write_closer_genes(file_handle,sig_gene,cpgname,cpgpos,dist,loc_type,gene_list):
+def write_closer_genes(file_handle,sig_gene,cpgname,cpgpos,dist,loc_type,gene_list,pval,fstat,beta,beta_sd):
 	for gene,start,stop,strand in gene_list:
-		writetofile(file_handle,[sig_gene,cpgname,dist,loc_type,gene,calcdist(cpgpos,start,stop,strand)])
+		writetofile(file_handle,[sig_gene,cpgname,dist,loc_type,gene,calcdist(cpgpos,start,stop,strand),pval,fstat,beta,beta_sd])
 
 def writetofile(file_handle,entries):
 	file_handle.write("%s\n" % (",".join([str(x) for x in entries])))
@@ -236,45 +236,47 @@ def loadpylmmresults(gene_fname,probename):
 			cpgname,chrm,pos,bs,distal,trans,weak,buckets = cpglocations[lineno-1]
 			
 			if pos != "NA" and pval != "NA":
-				if float(pval) < WEAK_THRESHOLD:# and float(fstat)>0:
-					if float(pval) < THRESHOLD:
-						pos = int(pos)
-						bs += 1
-						if chrm != prbchrm:
-							trans += 1
-							writetofile(closer_file,[probename,cpgname,"NA","TRANS","NA","NA"])
-						else:
-							dist = calcdist(pos,start,stop,strand)
-							if dist == 0:
-								writetofile(closer_file,[probename,cpgname,0,"IN","NA","NA"])
+				pval = float(pval)
+				if pval < WEAK_THRESHOLD:# and float(fstat)>0:
+					pos = int(pos)
+					if pval < THRESHOLD: bs += 1
+					if chrm != prbchrm:
+						if pval < THRESHOLD: trans += 1
+						writetofile(closer_file,[probename,cpgname,"NA","TRANS","NA","NA",pval,fstat,beta,beta_sd])
+					else:
+						dist = calcdist(pos,start,stop,strand)
+						if dist == 0:
+							writetofile(closer_file,[probename,cpgname,0,"IN","NA","NA",pval,fstat,beta,beta_sd])
+							if pval < THRESHOLD:
 								bucket_id = bucket(dist)
 								buckets[bucket_id] = buckets.get(bucket_id,0) + 1
 
+						else:
+							if abs(dist) > 50000:
+								if pval < THRESHOLD: distal += 1
+								writetofile(closer_file,[probename,cpgname,dist,"DISTAL","NA","NA",pval,fstat,beta,beta_sd])
 							else:
-								if abs(dist) > 50000:
-									distal += 1
-									writetofile(closer_file,[probename,cpgname,dist,"DISTAL","NA","NA"])
-								else:
 
-									#find any genes with a closer tss
-									tss = genedist.findtss(chrm,start,pos)
-									#find any genes with a closer absolute distance to the cpg
-									closer = genedist.findcloser(chrm,dist,pos)
-									#find any genes between the significant gene and cpg
-									between = genedist.findbetween(chrm,start,pos)
+								#find any genes with a closer tss
+								tss = genedist.findtss(chrm,start,pos)
+								#find any genes with a closer absolute distance to the cpg
+								closer = genedist.findcloser(chrm,dist,pos)
+								#find any genes between the significant gene and cpg
+								between = genedist.findbetween(chrm,start,pos)
 
+								if pval < THRESHOLD:
 									bucket_id = bucket(dist)
 									buckets[bucket_id] = buckets.get(bucket_id,0) + 1
-									#format is sig gene, cpg,closer gene, type,distance
-									#if this is the closest gene to the cpg, it means all the other "closer" buckets will be edmpty
-									if len(tss) == len(closer) == len(between) == 0:
-										writetofile(closer_file,[probename,cpgname,dist,"CLOSEST","NA","NA"])
-									else:
-										writefn = lambda pos_type,genes: write_closer_genes(closer_file,probename,cpgname,pos,dist,pos_type,genes)
-										writefn("BETWEEN",between)
-										writefn("TSS",tss)
-										writefn("CLOSER",closer)
-					else:
+								#format is sig gene, cpg,closer gene, type,distance
+								#if this is the closest gene to the cpg, it means all the other "closer" buckets will be edmpty
+								if len(tss) == len(closer) == len(between) == 0:
+									writetofile(closer_file,[probename,cpgname,dist,"CLOSEST","NA","NA",pval,fstat,beta,beta_sd])
+								else:
+									writefn = lambda pos_type,genes: write_closer_genes(closer_file,probename,cpgname,pos,dist,pos_type,genes,pval,fstat,beta,beta_sd)
+									writefn("BETWEEN",between)
+									writefn("TSS",tss)
+									writefn("CLOSER",closer)
+					if pval >= THRESHOLD:
 						weak += 1 #if it met the weak threshold but not the strong, increment the weak threshold counter
 					#save the updated counts for the cpg back into the cpg locations array
 					cpglocations[lineno-1] = [cpgname,chrm,pos,bs,distal,trans,weak,buckets]
