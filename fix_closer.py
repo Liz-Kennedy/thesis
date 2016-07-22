@@ -1,8 +1,8 @@
 import itertools
 import sys
 
-CPG_GENE_FILE = "MESA_closer_CGI_neg11.txt"
-OUTFILE = "MESA_closer2_CGI_neg11.txt"
+CPG_GENE_FILE = "MESA_closer.csv"
+OUTFILE = "MESA_closer2.txt"
 keyfn = lambda x: x[:3]
 
 keep_status = set(["IN","CLOSEST","TRANS","DISTAL"]) 
@@ -25,10 +25,11 @@ missing = set()
 def loadcpggenes():
         with open(CPG_GENE_FILE) as infile:
                 for line in infile:
-                        probe,cpg,distance,status,other_gene,other_distance = line.strip().split(",")
+			#sig_gene,cpgname,distance,status,other_gene,other_distance,pval,fstat,beta,beta_sd
+                        probe,cpg,distance,status,other_gene,other_distance,pval,fstat,beta,beta_sd = line.strip().split(",")
                         if probe in probe_to_gene:
 				gene = probe_to_gene[probe]
-                        	yield (cpg,probe,other_gene,other_distance,gene,distance,status)
+                        	yield (cpg,probe,other_gene,other_distance,gene,distance,status,pval,fstat,beta,beta_sd)
 			elif probe not in missing:
 				missing.add(probe)
 				print "WARN Missing corresponding gene for probe %s" % (probe)
@@ -53,7 +54,7 @@ def shouldkeep(entry):
     return line == "Y"
     
 def get_status(entries,status):
-    entries = [x for x in entries if x[-1] == status]
+    entries = [x for x in entries if x[3] == status]
     if len(entries) == 0:
         return None
     else:
@@ -89,12 +90,12 @@ def getkeepers(entries):
     return keepers
 
 def writefn(entry,handle):
-    cpg,probe,other_gene,other_distance,gene,distance,status = entry
+    cpg,probe,other_gene,other_distance,gene,distance,status,pval,fstat,beta,beta_sd = entry
     #gene,distance,other_gene,other_distance
-    handle.write("\t".join([cpg,probe,gene,distance,status,other_gene,other_distance]) + "\n")
+    handle.write("\t".join([cpg,probe,gene,distance,status,other_gene,other_distance,pval,fstat,beta,beta_sd]) + "\n")
 
 with open(OUTFILE,"w") as outfile:
-        outfile.write("\t".join(["cpg","probe","gene","gene distance","status","other_gene","other_distance"]) + "\n")
+        outfile.write("\t".join(["cpg","probe","gene","distance","status","other_gene","other_distance","pval","fstat","beta","beta_sd"]) + "\n")
 	lines = 0
         #group the entries together that are associated with the same cpg & probe
         for (cpg,prb),entries in itertools.groupby(sorted(loadcpggenes()),lambda x: x[:2]):
@@ -102,15 +103,15 @@ with open(OUTFILE,"w") as outfile:
            entries = list(entries)
            lines += len(entries)
            #if the significant gene is the closest to the cpg, no checking, no 'other' genes are relevant, so write directly to output
-           if entries[0][-1] in keep_status:
+           if entries[0][6] in keep_status:
                writefn(entries[0],outfile) 
            #if there were genes that fell closer
            else:
                keepers = getkeepers(entries)
                #if there were no keepers, then we can assume the significant gene is the closest
                if len(keepers) == 0: 
-                   cpg,probe,other_gene,other_distance,gene,distance,status = entries[0]
-                   writefn((cpg,probe,"NA","NA",gene,distance,"CLOSEST"),outfile)
+                   cpg,probe,other_gene,other_distance,gene,distance,status,pval,fstat,beta,beta_sd = entries[0]
+                   writefn((cpg,probe,"NA","NA",gene,distance,"CLOSEST",pval,fstat,beta,beta_sd),outfile)
                else:
                    for keeper in keepers:
                        writefn(keeper,outfile)
