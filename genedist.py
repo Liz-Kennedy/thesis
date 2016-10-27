@@ -114,9 +114,10 @@ def findbetween(chrm,start,pos):
 def find_abs_closest(cpgname,chrm,pos):
 	c = conn.cursor()
 	
-	stmt = "SELECT dist FROM (SELECT CASE WHEN (start <= ? AND end >= ?) OR (start >= ? AND end <= ?) THEN 0 ELSE MIN(ABS(start-?),ABS(end-?)) END AS dist FROM genes WHERE chrm = ?) as tmp ORDER BY dist ASC LIMIT 1"
+	stmt = "SELECT start,end,strand,dist FROM (SELECT start,end,strand,CASE WHEN (start <= ? AND end >= ?) OR (start >= ? AND end <= ?) THEN 0 ELSE MIN(ABS(start-?),ABS(end-?)) END AS dist FROM genes WHERE chrm = ?) as tmp ORDER BY dist ASC LIMIT 1"
 
-	return c.execute(stmt,[pos,pos,pos,pos,pos,pos,chrm]).fetchone()
+	start,end,strand,abs_dist = c.execute(stmt,[pos,pos,pos,pos,pos,pos,chrm]).fetchone()
+	return calcdist(pos,start,end,strand)
 
 def find_close_genes():
 	c = conn.cursor()
