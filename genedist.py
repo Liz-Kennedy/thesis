@@ -44,12 +44,13 @@ def load_file(fname):
 	with open(fname) as infile:
 		infile.readline() #drop the header
 		for line in infile:
-			gene,chrm,strand,start,end = line.strip().split("\t")[:5]
+			gene,chrm,start,end,strand = line.strip().split("\t")[:5]
 			if start == "NA" or end == "NA" or chrm == "NA":
                                 continue
 			start = int(start)
 			end = int(end)
 			chrm = frmt_chrm(chrm)
+			print chrm
 			if strand == "-":
 				tmp = start
 				start = end
@@ -113,11 +114,15 @@ def findbetween(chrm,start,pos):
 
 def find_abs_closest(cpgname,chrm,pos):
 	c = conn.cursor()
-	
-	stmt = "SELECT start,end,strand,dist FROM (SELECT start,end,strand,CASE WHEN (start <= ? AND end >= ?) OR (start >= ? AND end <= ?) THEN 0 ELSE MIN(ABS(start-?),ABS(end-?)) END AS dist FROM genes WHERE chrm = ?) as tmp ORDER BY dist ASC LIMIT 1"
+	if pos=="NA":
+		return "NONE"
+	else:
+		pos=int(pos)	
+		stmt = "SELECT start,end,strand,dist FROM (SELECT start,end,strand,CASE WHEN (start <= ? AND end >= ?) OR (start >= ? AND end <= ?) THEN 0 ELSE MIN(ABS(start-?),ABS(end-?)) END AS dist FROM genes WHERE chrm = ?) as tmp ORDER BY dist ASC LIMIT 1"
 
-	start,end,strand,abs_dist = c.execute(stmt,[pos,pos,pos,pos,pos,pos,chrm]).fetchone()
-	return calcdist(pos,start,end,strand)
+		start,end,strand,abs_dist = c.execute(stmt,[pos,pos,pos,pos,pos,pos,chrm]).fetchone()
+		print abs_dist
+		return calcdist(float(pos),float(start),float(end),strand)
 
 def find_close_genes():
 	c = conn.cursor()
