@@ -1,7 +1,36 @@
 import sys
 import gzip
 import genedist
+import probedist
 from os.path import exists,isfile,isdir
+
+#when the probe locs file is loaded, there is a categorical column indiciating if its the preferred, secondary, or other  probe location type.
+#there will be multiple locations for each probe included in probe locs
+
+#when making comparisons between distances between cpg & probe locs apply the following logic
+#if a cpg is within the corresponding probe loc, choose it
+  #if multiple, order by primary / secondary / other
+    #if multiple in the same category, choose closest to start site
+
+#if a cpg is within 1500 base pairs upstream of the start site, choose it
+  #if multiple, order by primary / secondary / other
+    #if multiple in the same category, choose closest to start site
+
+#if a cpg is on the same chrm
+  #if multiple, order by primary / secondary / other
+    #if multiple in the same category, choose closest to start site
+
+#if a cpg is on the same chrm
+  #if multiple, order by primary / secondary / other
+    #if multiple in the same category, choose closest to start site
+
+#if a cpg is om a different chrm
+  #if multiple, order by primary / secondary / other
+    #if multiple, choose one at random
+
+#include the probe information in the output.  probe id, chrm, start, end
+
+#include distance to start site from cpg
 
 #checks if a file exists
 #should_exist indicates whether we expect the file to exist or not
@@ -24,11 +53,12 @@ def load_skipgenes(fname):
 		for line in infile:
 			genes.add(line.strip())
 	return genes
+### WE NEED TO GET RID OF DROPLINES ALTOGETHER ###
 #DROPLINES_PATH = "/gpfs/pace1/home/het1/emkenn2-emory/data/MESA/infiles/tossIDXs/"
-DROPLINES_PATH = "/home/ekennedy/Projects/Thesis/input/tossIDXs/"
-print "Directory that contains row indicies to drop"
-print "DROPLINES_PATH = %s\n" % (DROPLINES_PATH)
-check_dir(DROPLINES_PATH)
+#DROPLINES_PATH = "/home/ekennedy/Projects/Thesis/input/tossIDXs/"
+#print "Directory that contains row indicies to drop"
+#print "DROPLINES_PATH = %s\n" % (DROPLINES_PATH)
+#check_dir(DROPLINES_PATH)
 
 START_ID = 18001
 STOP_ID = 19445
@@ -170,9 +200,10 @@ def bucket(val):
 	if val >= 0: return intbucket(val)
 	else: return -1 * intbucket(-val)
 
+#THIS FUNCTION HAS BEEN MIGRATED TO PROBEDIST AND IS NO LONGER USED
 def loadprobelocs():
         probes = {}
-        with open(PROBE_LOCATIONS_FILENAME) as infile:
+        with open(probe_locations_filename) as infile:
                 lineno = 0
                 for line in infile:
                         lineno += 1
@@ -201,9 +232,9 @@ def loadcpglocs():
 #cpgpos = the position of the cpg position
 #loc_type = How close the genes in the gene list are relative to the significant gene to the cpg. BETWEEN,TSS, or CLOSER
 #gene_list = list of gnees that are closer to the cpg than the significant gene
-def write_closer_genes(file_handle,sig_gene,cpgname,cpgpos,dist,loc_type,gene_list,pval,fstat,beta,beta_sd):
+def write_closer_genes(file_handle,sig_gene,cpgname,cpgpos,dist,loc_type,gene_list,pval,fstat,beta,beta_sd,start_dist):
 	for gene,start,stop,strand in gene_list:
-		writetofile(file_handle,[sig_gene,cpgname,dist,loc_type,gene,calcdist(cpgpos,start,stop,strand),pval,fstat,beta,beta_sd])
+		writetofile(file_handle,[sig_gene,cpgname,dist,loc_type,gene,calcdist(cpgpos,start,stop,strand),pval,fstat,beta,beta_sd,start_dist])
 
 def writetofile(file_handle,entries):
 	file_handle.write("%s\n" % (",".join([str(x) for x in entries])))
@@ -223,8 +254,10 @@ def loadpylmmresults(gene_fname,probename):
 		return
 	if get_fname(gene_fname) in skip_genes:
 		return
-	prbchrm,start,stop,strand,prbline = probelocs[probename]
-	droplines = loaddroplines(prbline)
+	prbchrm,start,stop,strand,prbline = probedist.probelocs[probename]
+	
+	#droplines shouldnt be utilized anymore COMPLETED!
+	#droplines = loaddroplines(prbline)
 	#SNP_ID	BETA	BETA_SD	F_STAT	P_VALUE
 	with open_file(gene_fname) as infile:
 		infile.readline() # drop the header
@@ -234,8 +267,8 @@ def loadpylmmresults(gene_fname,probename):
 
 			#if we've already determined the relationship of this gene 
 			#to this cpg isn't significant skip it
-			if lineno in droplines:
-				continue	
+			#if lineno in droplines:
+			#	continue	
 			
 			#load the gene
 			snp,beta,beta_sd,fstat,pval = line.strip().split("\t")
@@ -243,7 +276,9 @@ def loadpylmmresults(gene_fname,probename):
 			#find the cpg for this particular gene (?) I'm not sure why we're using the same
 			#indexing as the genes. I imagine there is a cpg listing for each gene, not positive though
 			cpgname,chrm,pos,bs,distal,trans,weak,buckets = cpglocations[lineno-1]
-			
+		
+			prbchrm,start,stop,strand,start_dist,category,priority = probedist.closest_probe(probename,chrm,pos)
+
 			if pos != "NA" and pval != "NA":
 				pval = float(pval)
 				if pval < WEAK_THRESHOLD:# and float(fstat)>0:
@@ -251,11 +286,11 @@ def loadpylmmresults(gene_fname,probename):
 					if pval < THRESHOLD: bs += 1
 					if chrm != prbchrm:
 						if pval < THRESHOLD: trans += 1
-						writetofile(closer_file,[probename,cpgname,"NA","TRANS","NA","NA",pval,fstat,beta,beta_sd])
+						writetofile(closer_file,[probename,cpgname,"NA","TRANS","NA","NA",pval,fstat,beta,beta_sd,start_dist])
 					else:
 						dist = calcdist(pos,start,stop,strand)
 						if dist == 0:
-							writetofile(closer_file,[probename,cpgname,0,"IN","NA","NA",pval,fstat,beta,beta_sd])
+							writetofile(closer_file,[probename,cpgname,0,"IN","NA","NA",pval,fstat,beta,beta_sd,start_dist])
 							if pval < THRESHOLD:
 								bucket_id = bucket(dist)
 								buckets[bucket_id] = buckets.get(bucket_id,0) + 1
@@ -263,7 +298,7 @@ def loadpylmmresults(gene_fname,probename):
 						else:
 							if abs(dist) > 50000:
 								if pval < THRESHOLD: distal += 1
-								writetofile(closer_file,[probename,cpgname,dist,"DISTAL","NA","NA",pval,fstat,beta,beta_sd])
+								writetofile(closer_file,[probename,cpgname,dist,"DISTAL","NA","NA",pval,fstat,beta,beta_sd,start_dist])
 							else:
 
 								#find any genes with a closer tss
@@ -279,9 +314,9 @@ def loadpylmmresults(gene_fname,probename):
 								#format is sig gene, cpg,closer gene, type,distance
 								#if this is the closest gene to the cpg, it means all the other "closer" buckets will be edmpty
 								if len(tss) == len(closer) == len(between) == 0:
-									writetofile(closer_file,[probename,cpgname,dist,"CLOSEST","NA","NA",pval,fstat,beta,beta_sd])
+									writetofile(closer_file,[probename,cpgname,dist,"CLOSEST","NA","NA",pval,fstat,beta,beta_sd,start_dist])
 								else:
-									writefn = lambda pos_type,genes: write_closer_genes(closer_file,probename,cpgname,pos,dist,pos_type,genes,pval,fstat,beta,beta_sd)
+									writefn = lambda pos_type,genes: write_closer_genes(closer_file,probename,cpgname,pos,dist,pos_type,genes,pval,fstat,beta,beta_sd,start_dist)
 									writefn("BETWEEN",between)
 									writefn("TSS",tss)
 									writefn("CLOSER",closer)
@@ -321,7 +356,7 @@ probe_group_names = [{
 
 #loads the probe locations
 print "Loading probe locations"
-probelocs = loadprobelocs()
+probelocs = probedist.loadprobelocs(PROBE_LOCATIONS_FILENAME)
 
 #loads the cpg locations
 print "Loading cpg locations"
