@@ -32,7 +32,7 @@ def dist_type(dist):
 	else: return "DOWNSTREAM"
 
 def frmt_chrm(chrm):
-	chrm = chrm.lower()
+	chrm = chrm.lower().replace('"','')
 	if chrm.startswith("chr"):
 		return chrm[3:]
 	else:
@@ -41,21 +41,21 @@ def frmt_chrm(chrm):
 conn = None
 def load_file(fname):
 	genes = []
+	print "Reading " + fname
 	with open(fname) as infile:
 		infile.readline() #drop the header
 		for line in infile:
-			gene,chrm,start,end,strand = line.strip().split("\t")[:5]
+			gene,chrm,strand,start,end = line.strip().split("\t")[:5]
 			if start == "NA" or end == "NA" or chrm == "NA":
                                 continue
 			start = int(start)
 			end = int(end)
-			chrm = frmt_chrm(chrm)
-			print chrm
+			chrmid = frmt_chrm(chrm)
 			if strand == "-":
 				tmp = start
 				start = end
 				end = tmp
-			genes.append((gene,chrm,start,end,strand))
+			genes.append((gene,chrmid,start,end,strand))
 	load(genes)
 
 def load(genes):
@@ -93,20 +93,22 @@ def drop():
 		conn.commit()
 
 #the start chrm and start position of the gene, and the position of the cpg
+#Liz made changes here to try and fix a typeError*************
 def findtss(chrm,start,pos):
-	tss_dist = abs(start - pos)
+	tss_dist = abs(int(start) - int(pos))
 	#find starting locations that are less abs distance away from the specified position
-	return query("chrm = ? AND ABS(start - ?) < ?",(chrm,pos,tss_dist))
+	return query("chrm = ? AND ABS(start - ?) < ABS(?)",(chrm,pos,tss_dist))
 
 #chrm and distance to cpg for significant gene, and the position fo the cpg
 def findcloser(chrm,dist,pos,limit=False):
-	stmt = "chrm = ? AND ((start <= ? AND end >= ?) OR (end <= ? AND start >= ?) OR MIN(ABS(start - ?),ABS(end - ?)) < ?)"
+	stmt = "chrm = ? AND ((start <= ? AND end >= ?) OR (end <= ? AND start >= ?) OR MIN(ABS(start - ?),ABS(end - ?)) < ABS(?))"
 	if limit:
 		stmt += " LIMIT 1"
 	return query(stmt,(chrm,pos,pos,pos,pos,pos,pos,dist))
 
 #pass in a genes chrm,start, and distance to find genes that are between it and the cpg location
 def findbetween(chrm,start,pos):
+	chrm = frmt_chrm(chrm)
 	if start < pos:
 		return query("chrm = ? AND start > ? AND start < ?", (chrm,start,pos))
 	else:
@@ -121,7 +123,6 @@ def find_abs_closest(cpgname,chrm,pos):
 		stmt = "SELECT start,end,strand,dist FROM (SELECT start,end,strand,CASE WHEN (start <= ? AND end >= ?) OR (start >= ? AND end <= ?) THEN 0 ELSE MIN(ABS(start-?),ABS(end-?)) END AS dist FROM genes WHERE chrm = ?) as tmp ORDER BY dist ASC LIMIT 1"
 
 		start,end,strand,abs_dist = c.execute(stmt,[pos,pos,pos,pos,pos,pos,chrm]).fetchone()
-		print abs_dist
 		return calcdist(float(pos),float(start),float(end),strand)
 
 def find_close_genes():

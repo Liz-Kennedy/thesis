@@ -1,8 +1,8 @@
 import itertools
 import sys
 
-CPG_GENE_FILE = "/Users/lizkennedy/Dropbox/CurrentProj/Thesis/GTP_adj_closer.csv"
-OUTFILE = "/Users/lizkennedy/Dropbox/CurrentProj/Thesis/GTP_adj_closer2.txt"
+CPG_GENE_FILE = "/Users/lizkennedy/Dropbox/CurrentProj/Thesis/MESA_adj_closer.csv"
+OUTFILE = "/Users/lizkennedy/Dropbox/CurrentProj/Thesis/MESA_adj_closer2.txt"
 keyfn = lambda x: x[:3]
 
 keep_status = set(["IN","CLOSEST","TRANS","DISTAL","NOPROBELOC"]) 
@@ -120,7 +120,7 @@ with open(OUTFILE,"w") as outfile:
         outfile.write("\t".join(["cpg","probe","probe_chrm","probe_start","probe_stop","probe_strand","start_dist","gene","distance","status","other_gene","other_distance","pval","fstat","beta","beta_sd"]) + "\n")
 	lines = 0
         #group the entries together that are associated with the same cpg & probe
-        for (cpg,prb),entries in itertools.groupby(sorted(loadcpggenes()),lambda x: x[:2]):
+        for (cpg,prb,probe_chrm,probe_start,probe_stop,probe_strand),entries in itertools.groupby(sorted(loadcpggenes()),lambda x: x[:6]):
            print "%s,%s %s percent complete" % (cpg,str(prb),str(100 * float(lines)/float(cpg_gene_linecnt)))
            entries = list(entries)
            lines += len(entries)

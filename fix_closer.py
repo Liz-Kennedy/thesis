@@ -1,20 +1,20 @@
 import itertools
 import sys
 
-CPG_GENE_FILE = "MESA_closer.csv"
-OUTFILE = "MESA_closer2.txt"
+CPG_GENE_FILE = "/Users/lizkennedy/Dropbox/CurrentProj/Thesis/GTP_closer.csv"
+OUTFILE = "/Users/lizkennedy/Dropbox/CurrentProj/Thesis/GTP_closer2.txt"
 keyfn = lambda x: x[:3]
 
 keep_status = set(["IN","CLOSEST","TRANS","DISTAL"]) 
 
-PROBE_TO_GENE_MAPPING = "Illumina_HT12_genenames.txt"
+PROBE_TO_GENE_MAPPING = "/Users/lizkennedy/Dropbox/CurrentProj/Thesis/Illumina_HT12_genenames.txt"
 probe_to_gene = {}
 with open(PROBE_TO_GENE_MAPPING) as infile:
     for line in infile:
         prb,gene = line.strip().split(" ")
         probe_to_gene[prb] = gene
 
-GENE_SELECTION_HISTORY = "fix_closer_selection_memory.txt"
+GENE_SELECTION_HISTORY = "/Users/lizkennedy/Dropbox/CurrentProj/Thesis/fix_closer_selection_memory.txt"
 prev_selections = {}
 with open(GENE_SELECTION_HISTORY) as infile:
     for line in infile:
