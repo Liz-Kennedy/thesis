@@ -16,9 +16,9 @@ def loadprobelocs(filename):
                                 start = tmp
                         if start != "NA" and stop != "NA":
 				if gene.upper().startswith("ILMN"):
-					annotated = 0
-				else:
 					annotated = 1
+				else:
+					annotated = 0
 				probes.append((nm,frmt_chrm(chrm),int(prb_start),int(prb_end),int(start),int(stop),strand,format_category(category),gene,annotated))
         load(probes)
 
@@ -46,7 +46,7 @@ def closest_probe(probe,chrm,pos):
 	 	WHEN (strand = '+' AND start <= ? AND end >= ?) OR (strand = '-' AND start >= ? AND end <= ?) THEN 0
 		ELSE ABS(start - ?) END as start_dist
 		FROM probes WHERE probe = ?) tmp
-	ORDER BY annotated,priority,category,start_dist ASC
+	ORDER BY priority,annotated,category,start_dist ASC
 	"""
 	c = conn.cursor()
 	c.execute(sql,(chrm,pos,pos,pos,pos,pos,probe))
