@@ -36,20 +36,28 @@ def closest_probe(probe,chrm,pos):
 	sql = """
 	SELECT chrm,prb_start,prb_end,strand,gene,start,end,start_dist,category,
 		CASE WHEN chrm IS null THEN 4
-		WHEN start_dist = 0 THEN 0
-		WHEN start_dist < 2500 THEN 1
-		WHEN start_dist < 1000000 THEN 2
+		WHEN dist = 0 THEN 0
+		WHEN dist < 2500 THEN 1
+		WHEN dist < 1000000 THEN 2
 		ELSE 3 END as priority
-	FROM 
-	(SELECT chrm,probe,gene,prb_start,prb_end,strand,start,end,category,annotated,
+	FROM
+	(SELECT chrm,prb_start,prb_end,strand,gene,start,end,category,annotated,
+		CASE WHEN strand = '-' AND end <= pos AND start >= pos THEN 0
+		WHEN strand = '-' AND pos > start THEN start - pos
+		WHEN start = '-' AND pos < end THEN end - pos
+		WHEN strand = '+' AND start <= pos AND end >= pos THEN 0
+		WHEN strand = '+' AND start < pos THEN pos - start
+		WHEN strand = '+' AND end > pos THEN end - start
+		ELSE null END as dist,
 		CASE WHEN chrm <> ? THEN null
-	 	WHEN (strand = '+' AND start <= ? AND end >= ?) OR (strand = '-' AND start >= ? AND end <= ?) THEN 0
-		ELSE ABS(start - ?) END as start_dist
-		FROM probes WHERE probe = ?) tmp
+	 	WHEN (strand = '+' AND start <= pos AND end >= pos) OR (strand = '-' AND start >= pos AND end <= pos) THEN 0
+		ELSE ABS(start - pos) END as start_dist
+	FROM 
+	(SELECT chrm,probe,gene,prb_start,prb_end,strand,start,end,category,annotated,? AS pos FROM probes WHERE probe = ?) tmp) tmp2
 	ORDER BY priority,annotated,category,start_dist ASC
 	"""
 	c = conn.cursor()
-	c.execute(sql,(chrm,pos,pos,pos,pos,pos,probe))
+	c.execute(sql,(chrm,pos,probe))
 	results = c.fetchall()
 	if DEBUG:
 		print "---RESULTS---"
